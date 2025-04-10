@@ -1,4 +1,3 @@
-// Function to fetch GitHub repositories
 async function fetchGitHubRepos(username) {
     try {
         const response = await fetch(`https://api.github.com/users/${username}/repos`);
@@ -21,7 +20,6 @@ async function fetchGitHubRepos(username) {
     }
 }
 
-// Function to create repository cards
 function createRepoCard(repo) {
     return `
         <div class="card">
@@ -45,8 +43,6 @@ function createRepoCard(repo) {
         </div>
     `;
 }
-
-// Function to load repositories
 async function loadRepositories() {
     const reposContainer = document.getElementById('repos-container');
     if (reposContainer) {
