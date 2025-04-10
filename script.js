@@ -1,6 +1,6 @@
 async function fetchGitHubRepos(username) {
     try {
-        const response = await fetch(`https://api.github.com/users/${username}/repos`);
+        const response = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&direction=desc`);
         if (!response.ok) {
             throw new Error('Failed to fetch repositories');
         }
@@ -8,63 +8,99 @@ async function fetchGitHubRepos(username) {
         return repos.map(repo => ({
             name: repo.name,
             description: repo.description || 'No description available',
-            url: repo.html_url,
             language: repo.language || 'Not specified',
             stars: repo.stargazers_count,
             forks: repo.forks_count,
-            has_pages: repo.has_pages
+            url: repo.html_url,
+            has_pages: repo.has_pages,
+            updated_at: repo.updated_at
         }));
     } catch (error) {
         console.error('Error fetching repositories:', error);
-        return [];
+        throw error;
     }
 }
 
 function createRepoCard(repo) {
-    return `
-        <div class="card">
-            <h3>${repo.name}</h3>
-            <p>${repo.description}</p>
-            <div class="repo-stats">
-                <span><i class="fas fa-code"></i> ${repo.language}</span>
-                <span><i class="fas fa-star"></i> ${repo.stars}</span>
-                <span><i class="fas fa-code-branch"></i> ${repo.forks}</span>
-            </div>
-            <div class="repo-links">
-                <a href="${repo.url}" target="_blank" rel="noopener noreferrer" class="repo-link">
-                    <i class="fab fa-github"></i> Repository
-                </a>
-                ${repo.has_pages ? `
-                    <a href="https://kartikeya7609.github.io/${repo.name}/" target="_blank" rel="noopener noreferrer" class="repo-link">
-                        <i class="fas fa-globe"></i> Live Demo
-                    </a>
-                ` : ''}
-            </div>
-        </div>
-    `;
+    const card = document.createElement('div');
+    card.className = 'card';
+    
+    const title = document.createElement('h3');
+    title.textContent = repo.name;
+    
+    const description = document.createElement('p');
+    description.textContent = repo.description;
+    
+    const stats = document.createElement('div');
+    stats.className = 'repo-stats';
+    
+    const language = document.createElement('span');
+    language.innerHTML = `<i class="fas fa-code"></i> ${repo.language}`;
+    
+    const stars = document.createElement('span');
+    stars.innerHTML = `<i class="fas fa-star"></i> ${repo.stars}`;
+    
+    const forks = document.createElement('span');
+    forks.innerHTML = `<i class="fas fa-code-branch"></i> ${repo.forks}`;
+    
+    const updated = document.createElement('span');
+    const updatedDate = new Date(repo.updated_at).toLocaleDateString();
+    updated.innerHTML = `<i class="fas fa-clock"></i> Updated: ${updatedDate}`;
+    
+    stats.appendChild(language);
+    stats.appendChild(stars);
+    stats.appendChild(forks);
+    stats.appendChild(updated);
+    
+    const links = document.createElement('div');
+    links.className = 'repo-links';
+    
+    const repoLink = document.createElement('a');
+    repoLink.href = repo.url;
+    repoLink.target = '_blank';
+    repoLink.className = 'repo-link';
+    repoLink.innerHTML = '<i class="fab fa-github"></i> Repository';
+    
+    links.appendChild(repoLink);
+    
+    if (repo.has_pages) {
+        const demoLink = document.createElement('a');
+        demoLink.href = `https://${username}.github.io/${repo.name}`;
+        demoLink.target = '_blank';
+        demoLink.className = 'repo-link';
+        demoLink.innerHTML = '<i class="fas fa-external-link-alt"></i> Live Demo';
+        links.appendChild(demoLink);
+    }
+    
+    card.appendChild(title);
+    card.appendChild(description);
+    card.appendChild(stats);
+    card.appendChild(links);
+    
+    return card;
 }
+
 async function loadRepositories() {
-    const reposContainer = document.getElementById('repos-container');
-    if (reposContainer) {
-        try {
-            const username = 'kartikeya7609';
-            const repos = await fetchGitHubRepos(username);
-            if (repos.length === 0) {
-                reposContainer.innerHTML = '<div class="error-message">No repositories found or error loading repositories.</div>';
-                return;
-            }
-            reposContainer.innerHTML = repos.map(createRepoCard).join('');
-        } catch (error) {
-            console.error('Error loading repositories:', error);
-            reposContainer.innerHTML = '<div class="error-message">Error loading repositories. Please try again later.</div>';
-        }
+    const container = document.getElementById('repos-container');
+    try {
+        const repos = await fetchGitHubRepos(username);
+        container.innerHTML = '';
+        repos.forEach(repo => {
+            const card = createRepoCard(repo);
+            container.appendChild(card);
+        });
+    } catch (error) {
+        container.innerHTML = `
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>Failed to load repositories. Please try again later.</p>
+            </div>
+        `;
     }
 }
 
-// Load content when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    loadRepositories();
-});
+const username = 'kartikeya7609';
+document.addEventListener('DOMContentLoaded', loadRepositories);
 
 // Smooth scrolling for navigation links
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
